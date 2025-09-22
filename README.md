@@ -31,29 +31,12 @@ This is a simple **two-player SOS game** implemented in C++ for the console. Pla
 - Row and column input only after Player 1 chooses their letter
 - No need to select S or O after the first choice; each player sticks to their assigned letter
 
-## Board Representation
-
-- `.` = empty cell  
-- `S` / `O` = normal letters placed on the board  
-- `s` / `o` = letters that are part of an SOS sequence  
-
-### Example Board
-
-0 1 2 3 4
-0 . S . O .
-1 . S s O .
-2 . . . S .
-3 . O . O .
-4 . s . O .
-
-
 Lowercase letters (`s` and `o`) indicate a completed SOS sequence.
 
 ## Compilation Instructions
 
 - Use a C++ compiler that supports C++11 or later
 - Compile using:
-  ```bash
   g++ sos_game.cpp -o sos_game
 
 Run the executable:
